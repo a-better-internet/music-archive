@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Music Archive</title>
+<style>
+@font-face {
+  font-family: 'Win3';
+  src: local('Fixedsys'), local('Terminal'), local('Courier New');
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+:root {
+  --bg: #1a1a2e;
+  --surface: #16213e;
+  --raised-light: #4a4a6a;
+  --raised-dark: #0a0a1a;
+  --border-light: #5a5a8a;
+  --border-dark: #0d0d1f;
+  --title-bg: #000080;
+  --title-text: #ffffff;
+  --text: #c0c0c0;
+  --text-hover: #ffffff;
+  --folder-yellow: #c8b04a;
+  --link-color: #c0c0c0;
+  --scrollbar-bg: #1a1a2e;
+  --scrollbar-thumb: #4a4a6a;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Courier New', 'Fixedsys', monospace;
+  font-size: 13px;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 32px 16px;
+}
+
+.win-border-outer {
+  border-top: 2px solid var(--raised-light);
+  border-left: 2px solid var(--raised-light);
+  border-bottom: 2px solid var(--raised-dark);
+  border-right: 2px solid var(--raised-dark);
+}
+
+.win-border-inner {
+  border-top: 1px solid var(--border-light);
+  border-left: 1px solid var(--border-light);
+  border-bottom: 1px solid var(--border-dark);
+  border-right: 1px solid var(--border-dark);
+}
+
+.win-border-sunken {
+  border-top: 2px solid var(--raised-dark);
+  border-left: 2px solid var(--raised-dark);
+  border-bottom: 2px solid var(--raised-light);
+  border-right: 2px solid var(--raised-light);
+}
+
+.window {
+  width: 100%;
+  max-width: 560px;
+  background: var(--surface);
+}
+
+.title-bar {
+  background: var(--title-bg);
+  color: var(--title-text);
+  padding: 3px 4px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  user-select: none;
+}
+
+.title-bar-text {
+  font-weight: bold;
+  font-size: 13px;
+  letter-spacing: 0.5px;
+  padding-left: 2px;
+}
+
+.title-bar-controls {
+  display: flex;
+  gap: 2px;
+}
+
+.title-bar-controls button {
+  width: 18px;
+  height: 16px;
+  background: var(--surface);
+  border-top: 1px solid var(--raised-light);
+  border-left: 1px solid var(--raised-light);
+  border-bottom: 1px solid var(--raised-dark);
+  border-right: 1px solid var(--raised-dark);
+  font-size: 10px;
+  line-height: 1;
+  cursor: default;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text);
+  font-family: inherit;
+  padding: 0;
+}
+
+.menu-bar {
+  background: var(--surface);
+  padding: 2px 0;
+  border-bottom: 1px solid var(--raised-dark);
+  display: flex;
+  gap: 0;
+}
+
+.menu-item {
+  padding: 2px 8px;
+  color: var(--text);
+  cursor: default;
+  font-size: 13px;
+}
+
+.menu-item:first-child .underline {
+  text-decoration: underline;
+}
+
+.menu-item:hover {
+  background: var(--title-bg);
+  color: var(--title-text);
+}
+
+.status-bar {
+  background: var(--surface);
+  padding: 3px 6px;
+  font-size: 12px;
+  color: var(--text);
+  border-top: 1px solid var(--raised-dark);
+  display: flex;
+  justify-content: space-between;
+}
+
+.status-bar .status-section {
+  padding: 1px 4px;
+}
+
+.content-area {
+  background: var(--bg);
+  margin: 4px;
+  padding: 0;
+  min-height: 300px;
+  overflow-y: auto;
+  max-height: 70vh;
+}
+
+.content-area::-webkit-scrollbar {
+  width: 16px;
+}
+
+.content-area::-webkit-scrollbar-track {
+  background: var(--scrollbar-bg);
+  border-left: 1px solid var(--raised-dark);
+}
+
+.content-area::-webkit-scrollbar-thumb {
+  background: var(--surface);
+  border-top: 1px solid var(--raised-light);
+  border-left: 1px solid var(--raised-light);
+  border-bottom: 1px solid var(--raised-dark);
+  border-right: 1px solid var(--raised-dark);
+}
+
+.tree-container {
+  padding: 4px 0;
+}
+
+.tree-root {
+  padding-left: 8px;
+}
+
+.tree-branch {
+  display: flex;
+  align-items: center;
+  padding: 1px 4px;
+  cursor: default;
+  gap: 4px;
+  color: var(--text);
+}
+
+.tree-branch.root-folder {
+  margin-bottom: 2px;
+  font-weight: bold;
+}
+
+.tree-children {
+  padding-left: 20px;
+}
+
+.tree-item {
+  display: flex;
+  align-items: center;
+  padding: 2px 4px;
+  gap: 6px;
+  text-decoration: none;
+  color: var(--link-color);
+  cursor: default;
+  white-space: nowrap;
+}
+
+.tree-item:hover {
+  background: var(--title-bg);
+  color: var(--title-text);
+}
+
+.tree-item:hover .folder-icon {
+  color: var(--title-text);
+}
+
+.folder-icon {
+  color: var(--folder-yellow);
+  font-size: 12px;
+  flex-shrink: 0;
+  width: 16px;
+  text-align: center;
+  line-height: 1;
+}
+
+.folder-icon svg {
+  width: 14px;
+  height: 12px;
+  vertical-align: middle;
+}
+
+.tree-line {
+  color: var(--raised-light);
+  flex-shrink: 0;
+  width: 16px;
+  text-align: center;
+  font-size: 12px;
+  line-height: 1;
+  user-select: none;
+}
+
+.item-row {
+  display: flex;
+  align-items: center;
+}
+
+.connector {
+  color: var(--raised-light);
+  font-size: 13px;
+  user-select: none;
+  white-space: pre;
+  flex-shrink: 0;
+}
+
+.tree-item-link {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  text-decoration: none;
+  color: var(--link-color);
+  padding: 1px 3px;
+  flex: 1;
+}
+
+.tree-item-link:hover {
+  background: var(--title-bg);
+  color: var(--title-text);
+}
+
+.tree-item-link:hover .folder-icon svg {
+  fill: var(--title-text);
+}
+
+.root-icon svg {
+  width: 16px;
+  height: 14px;
+  vertical-align: middle;
+}
+
+.toggle-icon {
+  color: var(--text);
+  font-size: 11px;
+  width: 10px;
+  text-align: center;
+  user-select: none;
+}
+
+@media (max-width: 600px) {
+  body {
+    padding: 8px 0;
+  }
+  .window {
+    max-width: 100%;
+    border: none;
+  }
+}
+</style>
+</head>
+<body>
+
+<div class="window win-border-outer">
+  <div class="title-bar">
+    <span class="title-bar-text">Music Archive</span>
+    <div class="title-bar-controls">
+      <button aria-label="Minimize">_</button>
+      <button aria-label="Maximize">&#9633;</button>
+    </div>
+  </div>
+
+  <div class="menu-bar">
+    <span class="menu-item"><span class="underline">F</span>ile</span>
+    <span class="menu-item">Disk</span>
+    <span class="menu-item">Tree</span>
+    <span class="menu-item">View</span>
+    <span class="menu-item">Help</span>
+  </div>
+
+  <div class="content-area win-border-sunken">
+    <div class="tree-container">
+      <div class="tree-root">
+
+        <div class="tree-branch root-folder">
+          <span class="toggle-icon">-</span>
+          <span class="folder-icon root-icon">
+            <svg viewBox="0 0 16 14" fill="#c8b04a" xmlns="http://www.w3.org/2000/svg">
+              <rect x="0" y="2" width="16" height="12" rx="1" fill="#c8b04a"/>
+              <rect x="0" y="0" width="7" height="4" rx="1" fill="#a08830"/>
+            </svg>
+          </span>
+          <span>C:\MUSIC</span>
+        </div>
+
+        <div class="tree-children" id="file-list">
+
+          <div class="item-row">
+            <span class="connector">&#9500;&#9472; </span>
+            <a class="tree-item-link" href="https://a-better-internet.github.io/acoustic-levitation/" target="_blank" rel="noopener">
+              <span class="folder-icon">
+                <svg viewBox="0 0 16 14" fill="#c8b04a" xmlns="http://www.w3.org/2000/svg">
+                  <rect x="0" y="2" width="16" height="12" rx="1"/>
+                  <rect x="0" y="0" width="7" height="4" rx="1" fill="#a08830"/>
+                </svg>
+              </span>
+              <span>Acoustic Levitation</span>
+            </a>
+          </div>
+
+          <div class="item-row">
+            <span class="connector">&#9500;&#9472; </span>
+            <a class="tree-item-link" href="https://a-better-internet.github.io/aether-proto/" target="_blank" rel="noopener">
+              <span class="folder-icon">
+                <svg viewBox="0 0 16 14" fill="#c8b04a" xmlns="http://www.w3.org/2000/svg">
+                  <rect x="0" y="2" width="16" height="12" rx="1"/>
+                  <rect x="0" y="0" width="7" height="4" rx="1" fill="#a08830"/>
+                </svg>
+              </span>
+              <span>Aether</span>
+            </a>
+          </div>
+
+          <div class="item-row">
+            <span class="connector">&#9500;&#9472; </span>
+            <a class="tree-item-link" href="https://a-better-internet.github.io/biggie-size-me/" target="_blank" rel="noopener">
+              <span class="folder-icon">
+                <svg viewBox="0 0 16 14" fill="#c8b04a" xmlns="http://www.w3.org/2000/svg">
+                  <rect x="0" y="2" width="16" height="12" rx="1"/>
+                  <rect x="0" y="0" width="7" height="4" rx="1" fill="#a08830"/>
+                </svg>
+              </span>
+              <span>Biggie Size Me</span>
+            </a>
+          </div>
+
+          <div class="item-row">
+            <span class="connector">&#9500;&#9472; </span>
+            <a class="tree-item-link" href="https://a-better-internet.github.io/botanics/" target="_blank" rel="noopener">
+              <span class="folder-icon">
+                <svg viewBox="0 0 16 14" fill="#c8b04a" xmlns="http://www.w3.org/2000/svg">
+                  <rect x="0" y="2" width="16" height="12" rx="1"/>
+                  <rect x="0" y="0" width="7" height="4" rx="1" fill="#a08830"/>
+                </svg>
+              </span>
+              <span>Botanics</span>
+            </a>
+          </div>
+
+          <div class="item-row">
+            <span class="connector">&#9500;&#9472; </span>
+            <a class="tree-item-link" href="https://a-better-internet.github.io/capillary-hydrology/" target="_blank" rel="noopener">
+              <span class="folder-icon">
+                <svg viewBox="0 0 16 14" fill="#c8b04a" xmlns="http://www.w3.org/2000/svg">
+                  <rect x="0" y="2" width="16" height="12" rx="1"/>
+                  <rect x="0" y="0" width="7" height="4" rx="1" fill="#a08830"/>
+                </svg>
+              </span>
+              <span>Capillary Hydrology</span>
+            </a>
+          </div>
+
+          <div class="item-row">
+            <span class="connector">&#9500;&#9472; </span>
+            <a class="tree-item-link" href="https://a-better-internet.github.io/crab-cake/" target="_blank" rel="noopener">
+              <span class="folder-icon">
+                <svg viewBox="0 0 16 14" fill="#c8b04a" xmlns="http://www.w3.org/2000/svg">
+                  <rect x="0" y="2" width="16" height="12" rx="1"/>
+                  <rect x="0" y="0" width="7" height="4" rx="1" fill="#a08830"/>
+                </svg>
+              </span>
+              <span>Crab Cake</span>
+            </a>
+          </div>
+
+          <div class="item-row">
+            <span class="connector">&#9500;&#9472; </span>
+            <a class="tree-item-link" href="https://a-better-internet.github.io/ferro-resonant-core/" target="_blank" rel="noopener">
+              <span class="folder-icon">
+                <svg viewBox="0 0 16 14" fill="#c8b04a" xmlns="http://www.w3.org/2000/svg">
+                  <rect x="0" y="2" width="16" height="12" rx="1"/>
+                  <rect x="0" y="0" width="7" height="4" rx="1" fill="#a08830"/>
+                </svg>
+              </span>
+              <span>Ferro Resonant Core</span>
+            </a>
+          </div>
+
+          <div class="item-row">
+            <span class="connector">&#9500;&#9472; </span>
+            <a class="tree-item-link" href="https://a-better-internet.github.io/floating-music-mouse/" target="_blank" rel="noopener">
+              <span class="folder-icon">
+                <svg viewBox="0 0 16 14" fill="#c8b04a" xmlns="http://www.w3.org/2000/svg">
+                  <rect x="0" y="2" width="16" height="12" rx="1"/>
+                  <rect x="0" y="0" width="7" height="4" rx="1" fill="#a08830"/>
+                </svg>
+              </span>
+              <span>Floating Music Mouse</span>
+            </a>
+          </div>
+
+          <div class="item-row">
+            <span class="connector">&#9500;&#9472; </span>
+            <a class="tree-item-link" href="https://a-better-internet.github.io/formant-choir/" target="_blank" rel="noopener">
+              <span class="folder-icon">
+                <svg viewBox="0 0 16 14" fill="#c8b04a" xmlns="http://www.w3.org/2000/svg">
+                  <rect x="0" y="2" width="16" height="12" rx="1"/>
+                  <rect x="0" y="0" width="7" height="4" rx="1" fill="#a08830"/>
+                </svg>
+              </span>
+              <span>Formant Choir</span>
+            </a>
+          </div>
+
+          <div class="item-row">
+            <span class="connector">&#9500;&#9472; </span>
+            <a class="tree-item-link" href="https://a-better-internet.github.io/fractal-drum/" target="_blank" rel="noopener">
+              <span class="folder-icon">
+                <svg viewBox="0 0 16 14" fill="#c8b04a" xmlns="http://www.w3.org/2000/svg">
+                  <rect x="0" y="2" width="16" height="12" rx="1"/>
+                  <rect x="0" y="0" width="7" height="4" rx="1" fill="#a08830"/>
+                </svg>
+              </span>
+              <span>Fractal Drum</span>
+            </a>
+          </div>
+
+          <div class="item-row">
+            <span class="connector">&#9500;&#9472; </span>
+            <a class="tree-item-link" href="https://a-better-internet.github.io/fringe-loom/" target="_blank" rel="noopener">
+              <span class="folder-icon">
+                <svg viewBox="0 0 16 14" fill="#c8b04a" xmlns="http://www.w3.org/2000/svg">
+                  <rect x="0" y="2" width="16" height="12" rx="1"/>
+                  <rect x="0" y="0" width="7" height="4" rx="1" fill="#a08830"/>
+                </svg>
+              </span>
+              <span>Fringe Loom</span>
+            </a>
+          </div>
+
+          <div class="item-row">
+            <span class="connector">&#9500;&#9472; </span>
+            <a class="tree-item-link" href="https://a-better-internet.github.io/galvanic-resonator/" target="_blank" rel="noopener">
+              <span class="folder-icon">
+                <svg viewBox="0 0 16 14" fill="#c8b04a" xmlns="http://www.w3.org/2000/svg">
+                  <rect x="0" y="2" width="16" height="12" rx="1"/>
+                  <rect x="0" y="0" width="7" height="4" rx="1" fill="#a08830"/>
+                </svg>
+              </span>
+              <span>Galvanic Resonator</span>
+            </a>
+          </div>
+
+          <div class="item-row">
+            <span class="connector">&#9500;&#9472; </span>
+            <a class="tree-item-link" href="https://a-better-internet.github.io/implexus/" target="_blank" rel="noopener">
+              <span class="folder-icon">
+                <svg viewBox="0 0 16 14" fill="#c8b04a" xmlns="http://www.w3.org/2000/svg">
+                  <rect x="0" y="2" width="16" height="12" rx="1"/>
+                  <rect x="0" y="0" width="7" height="4" rx="1" fill="#a08830"/>
+                </svg>
+              </span>
+              <span>Implexus</span>
+            </a>
+          </div>
+
+          <div class="item-row">
+            <span class="connector">&#9500;&#9472; </span>
+            <a class="tree-item-link" href="https://a-better-internet.github.io/kid-kilowatt/" target="_blank" rel="noopener">
+              <span class="folder-icon">
+                <svg viewBox="0 0 16 14" fill="#c8b04a" xmlns="http://www.w3.org/2000/svg">
+                  <rect x="0" y="2" width="16" height="12" rx="1"/>
+                  <rect x="0" y="0" width="7" height="4" rx="1" fill="#a08830"/>
+                </svg>
+              </span>
+              <span>Kid Kilowatt</span>
+            </a>
+          </div>
+
+          <div class="item-row">
+            <span class="connector">&#9500;&#9472; </span>
+            <a class="tree-item-link" href="https://a-better-internet.github.io/kinetic-patch-bay/" target="_blank" rel="noopener">
+              <span class="folder-icon">
+                <svg viewBox="0 0 16 14" fill="#c8b04a" xmlns="http://www.w3.org/2000/svg">
+                  <rect x="0" y="2" width="16" height="12" rx="1"/>
+                  <rect x="0" y="0" width="7" height="4" rx="1" fill="#a08830"/>
+                </svg>
+              </span>
+              <span>Kinetic Patch Bay</span>
+            </a>
+          </div>
+
+          <div class="item-row">
+            <span class="connector">&#9500;&#9472; </span>
+            <a class="tree-item-link" href="https://a-better-internet.github.io/Kosmiche/" target="_blank" rel="noopener">
+              <span class="folder-icon">
+                <svg viewBox="0 0 16 14" fill="#c8b04a" xmlns="http://www.w3.org/2000/svg">
+                  <rect x="0" y="2" width="16" height="12" rx="1"/>
+                  <rect x="0" y="0" width="7" height="4" rx="1" fill="#a08830"/>
+                </svg>
+              </span>
+              <span>Kosmiche</span>
+            </a>
+          </div>
+
+          <div class="item-row">
+            <span class="connector">&#9500;&#9472; </span>
+            <a class="tree-item-link" href="https://a-better-internet.github.io/lobster/" target="_blank" rel="noopener">
+              <span class="folder-icon">
+                <svg viewBox="0 0 16 14" fill="#c8b04a" xmlns="http://www.w3.org/2000/svg">
+                  <rect x="0" y="2" width="16" height="12" rx="1"/>
+                  <rect x="0" y="0" width="7" height="4" rx="1" fill="#a08830"/>
+                </svg>
+              </span>
+              <span>Lobster</span>
+            </a>
+          </div>
+
+          <div class="item-row">
+            <span class="connector">&#9500;&#9472; </span>
+            <a class="tree-item-link" href="https://a-better-internet.github.io/old-hollywood-synth/" target="_blank" rel="noopener">
+              <span class="folder-icon">
+                <svg viewBox="0 0 16 14" fill="#c8b04a" xmlns="http://www.w3.org/2000/svg">
+                  <rect x="0" y="2" width="16" height="12" rx="1"/>
+                  <rect x="0" y="0" width="7" height="4" rx="1" fill="#a08830"/>
+                </svg>
+              </span>
+              <span>Old Hollywood</span>
+            </a>
+          </div>
+
+          <div class="item-row">
+            <span class="connector">&#9500;&#9472; </span>
+            <a class="tree-item-link" href="https://a-better-internet.github.io/leimer/" target="_blank" rel="noopener">
+              <span class="folder-icon">
+                <svg viewBox="0 0 16 14" fill="#c8b04a" xmlns="http://www.w3.org/2000/svg">
+                  <rect x="0" y="2" width="16" height="12" rx="1"/>
+                  <rect x="0" y="0" width="7" height="4" rx="1" fill="#a08830"/>
+                </svg>
+              </span>
+              <span>Palace of Lights</span>
+            </a>
+          </div>
+
+          <div class="item-row">
+            <span class="connector">&#9500;&#9472; </span>
+            <a class="tree-item-link" href="https://a-better-internet.github.io/pathways/" target="_blank" rel="noopener">
+              <span class="folder-icon">
+                <svg viewBox="0 0 16 14" fill="#c8b04a" xmlns="http://www.w3.org/2000/svg">
+                  <rect x="0" y="2" width="16" height="12" rx="1"/>
+                  <rect x="0" y="0" width="7" height="4" rx="1" fill="#a08830"/>
+                </svg>
+              </span>
+              <span>Pathways</span>
+            </a>
+          </div>
+
+          <div class="item-row">
+            <span class="connector">&#9500;&#9472; </span>
+            <a class="tree-item-link" href="https://a-better-internet.github.io/peterlin-mk-II/" target="_blank" rel="noopener">
+              <span class="folder-icon">
+                <svg viewBox="0 0 16 14" fill="#c8b04a" xmlns="http://www.w3.org/2000/svg">
+                  <rect x="0" y="2" width="16" height="12" rx="1"/>
+                  <rect x="0" y="0" width="7" height="4" rx="1" fill="#a08830"/>
+                </svg>
+              </span>
+              <span>Peterlin</span>
+            </a>
+          </div>
+
+          <div class="item-row">
+            <span class="connector">&#9500;&#9472; </span>
+            <a class="tree-item-link" href="https://a-better-internet.github.io/Phonetic-formant-weaver-/" target="_blank" rel="noopener">
+              <span class="folder-icon">
+                <svg viewBox="0 0 16 14" fill="#c8b04a" xmlns="http://www.w3.org/2000/svg">
+                  <rect x="0" y="2" width="16" height="12" rx="1"/>
+                  <rect x="0" y="0" width="7" height="4" rx="1" fill="#a08830"/>
+                </svg>
+              </span>
+              <span>Phonetic Formant Weaver</span>
+            </a>
+          </div>
+
+          <div class="item-row">
+            <span class="connector">&#9500;&#9472; </span>
+            <a class="tree-item-link" href="https://a-better-internet.github.io/roat-mod/" target="_blank" rel="noopener">
+              <span class="folder-icon">
+                <svg viewBox="0 0 16 14" fill="#c8b04a" xmlns="http://www.w3.org/2000/svg">
+                  <rect x="0" y="2" width="16" height="12" rx="1"/>
+                  <rect x="0" y="0" width="7" height="4" rx="1" fill="#a08830"/>
+                </svg>
+              </span>
+              <span>Roat Mod</span>
+            </a>
+          </div>
+
+          <div class="item-row">
+            <span class="connector">&#9500;&#9472; </span>
+            <a class="tree-item-link" href="https://a-better-internet.github.io/shitasynth/" target="_blank" rel="noopener">
+              <span class="folder-icon">
+                <svg viewBox="0 0 16 14" fill="#c8b04a" xmlns="http://www.w3.org/2000/svg">
+                  <rect x="0" y="2" width="16" height="12" rx="1"/>
+                  <rect x="0" y="0" width="7" height="4" rx="1" fill="#a08830"/>
+                </svg>
+              </span>
+              <span>Shitasynth</span>
+            </a>
+          </div>
+
+          <div class="item-row">
+            <span class="connector">&#9500;&#9472; </span>
+            <a class="tree-item-link" href="https://a-better-internet.github.io/sitar-drone/" target="_blank" rel="noopener">
+              <span class="folder-icon">
+                <svg viewBox="0 0 16 14" fill="#c8b04a" xmlns="http://www.w3.org/2000/svg">
+                  <rect x="0" y="2" width="16" height="12" rx="1"/>
+                  <rect x="0" y="0" width="7" height="4" rx="1" fill="#a08830"/>
+                </svg>
+              </span>
+              <span>Sitar Drone</span>
+            </a>
+          </div>
+
+          <div class="item-row">
+            <span class="connector">&#9500;&#9472; </span>
+            <a class="tree-item-link" href="https://a-better-internet.github.io/spatial-echo-chamber/" target="_blank" rel="noopener">
+              <span class="folder-icon">
+                <svg viewBox="0 0 16 14" fill="#c8b04a" xmlns="http://www.w3.org/2000/svg">
+                  <rect x="0" y="2" width="16" height="12" rx="1"/>
+                  <rect x="0" y="0" width="7" height="4" rx="1" fill="#a08830"/>
+                </svg>
+              </span>
+              <span>Spatial Echo Chamber</span>
+            </a>
+          </div>
+
+          <div class="item-row">
+            <span class="connector">&#9500;&#9472; </span>
+            <a class="tree-item-link" href="https://a-better-internet.github.io/subtraction/" target="_blank" rel="noopener">
+              <span class="folder-icon">
+                <svg viewBox="0 0 16 14" fill="#c8b04a" xmlns="http://www.w3.org/2000/svg">
+                  <rect x="0" y="2" width="16" height="12" rx="1"/>
+                  <rect x="0" y="0" width="7" height="4" rx="1" fill="#a08830"/>
+                </svg>
+              </span>
+              <span>Subtraction</span>
+            </a>
+          </div>
+
+          <div class="item-row">
+            <span class="connector">&#9500;&#9472; </span>
+            <a class="tree-item-link" href="https://a-better-internet.github.io/topographic-chaos/" target="_blank" rel="noopener">
+              <span class="folder-icon">
+                <svg viewBox="0 0 16 14" fill="#c8b04a" xmlns="http://www.w3.org/2000/svg">
+                  <rect x="0" y="2" width="16" height="12" rx="1"/>
+                  <rect x="0" y="0" width="7" height="4" rx="1" fill="#a08830"/>
+                </svg>
+              </span>
+              <span>Topographic Chaos</span>
+            </a>
+          </div>
+
+          <div class="item-row">
+            <span class="connector">&#9500;&#9472; </span>
+            <a class="tree-item-link" href="https://a-better-internet.github.io/trommel-maschine/" target="_blank" rel="noopener">
+              <span class="folder-icon">
+                <svg viewBox="0 0 16 14" fill="#c8b04a" xmlns="http://www.w3.org/2000/svg">
+                  <rect x="0" y="2" width="16" height="12" rx="1"/>
+                  <rect x="0" y="0" width="7" height="4" rx="1" fill="#a08830"/>
+                </svg>
+              </span>
+              <span>Trommel Maschine</span>
+            </a>
+          </div>
+
+          <div class="item-row">
+            <span class="connector">&#9500;&#9472; </span>
+            <a class="tree-item-link" href="https://a-better-internet.github.io/viceroy-opus/" target="_blank" rel="noopener">
+              <span class="folder-icon">
+                <svg viewBox="0 0 16 14" fill="#c8b04a" xmlns="http://www.w3.org/2000/svg">
+                  <rect x="0" y="2" width="16" height="12" rx="1"/>
+                  <rect x="0" y="0" width="7" height="4" rx="1" fill="#a08830"/>
+                </svg>
+              </span>
+              <span>Viceroy-Opus</span>
+            </a>
+          </div>
+
+          <div class="item-row">
+            <span class="connector">&#9500;&#9472; </span>
+            <a class="tree-item-link" href="https://a-better-internet.github.io/watussi2/" target="_blank" rel="noopener">
+              <span class="folder-icon">
+                <svg viewBox="0 0 16 14" fill="#c8b04a" xmlns="http://www.w3.org/2000/svg">
+                  <rect x="0" y="2" width="16" height="12" rx="1"/>
+                  <rect x="0" y="0" width="7" height="4" rx="1" fill="#a08830"/>
+                </svg>
+              </span>
+              <span>Watussi</span>
+            </a>
+          </div>
+
+          <div class="item-row">
+            <span class="connector">&#9492;&#9472; </span>
+            <a class="tree-item-link" href="https://a-better-internet.github.io/analog-tape-loop/" target="_blank" rel="noopener">
+              <span class="folder-icon">
+                <svg viewBox="0 0 16 14" fill="#c8b04a" xmlns="http://www.w3.org/2000/svg">
+                  <rect x="0" y="2" width="16" height="12" rx="1"/>
+                  <rect x="0" y="0" width="7" height="4" rx="1" fill="#a08830"/>
+                </svg>
+              </span>
+              <span>Zero Input Tape Matrix</span>
+            </a>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="status-bar">
+    <span class="status-section">32 object(s)</span>
+    <span class="status-section">C:\MUSIC\*.*</span>
+  </div>
+</div>
+
+</body>
+</html>
